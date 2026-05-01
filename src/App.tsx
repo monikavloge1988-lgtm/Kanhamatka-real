@@ -38,6 +38,9 @@ export default function App() {
           userDocSnap = await getDoc(userRef);
           if (userDocSnap.exists()) {
             const data = userDocSnap.data();
+            if (data.wallet !== undefined) {
+              setWallet(data.wallet);
+            }
             if (data.transactions) {
               // Parse dates strings safely
               const parsedTxs = data.transactions.map((t: any) => ({
@@ -118,9 +121,13 @@ export default function App() {
             // Because we're not actually making backend transaction docs right now due to limit
             // we will just update the user doc if it was a DEPOSIT
             if (t.type === 'DEPOSIT' && user) {
-              setDoc(doc(db, 'users', user.uid), {
-                wallet: wallet + t.amount
-              }, { merge: true });
+              setWallet(prevWallet => {
+                const updatedWallet = prevWallet + t.amount;
+                setDoc(doc(db, 'users', user.uid), {
+                  wallet: updatedWallet
+                }, { merge: true }).catch(console.error);
+                return updatedWallet;
+              });
             }
             return { ...t, status: 'SUCCESS' };
           }
@@ -149,11 +156,7 @@ export default function App() {
   const handleWithdrawRequest = (amount: number, upiId: string) => {
     if (wallet < amount) return false;
     
-    if (user) {
-      setDoc(doc(db, 'users', user.uid), {
-        wallet: wallet - amount
-      }, { merge: true });
-    }
+    updateWallet(prev => prev - amount);
 
     const newTx: Transaction = {
       id: Math.random().toString(36).substring(2, 10).toUpperCase(),

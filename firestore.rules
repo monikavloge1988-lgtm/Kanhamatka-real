@@ -17,19 +17,21 @@ service cloud.firestore {
     match /users/{userId} {
       function isValidUser(data) {
         return data.keys().hasAll(['wallet', 'createdAt']) && 
-               data.keys().size() == 2 &&
+               (data.keys().size() == 2 || (data.keys().hasAll(['transactions']) && data.keys().size() == 3)) &&
                data.wallet is number &&
-               data.createdAt == request.time;
+               data.createdAt == request.time &&
+               (!('transactions' in data) || data.transactions is list);
       }
       
       function isValidUserUpdate(data) {
         return data.wallet is number &&
-               data.createdAt == existing().createdAt;
+               data.createdAt == existing().createdAt &&
+               (!('transactions' in data) || data.transactions is list);
       }
 
       allow get: if isSignedIn() && isOwner(userId) && isValidId(userId);
       allow create: if isSignedIn() && isOwner(userId) && isValidId(userId) && isValidUser(incoming());
-      allow update: if isSignedIn() && isOwner(userId) && isValidId(userId) && isValidUserUpdate(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['wallet']);
+      allow update: if isSignedIn() && isOwner(userId) && isValidId(userId) && isValidUserUpdate(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['wallet', 'transactions']);
       
       // Transactions Subcollection
       match /transactions/{transactionId} {
