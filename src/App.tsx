@@ -30,30 +30,34 @@ export default function App() {
       if (currentUser) {
         setUser(currentUser);
         
-        // Load transactions from local storage synchronously BEFORE any await
-        try {
-          const cached = localStorage.getItem(`tx_history_${currentUser.uid}`);
-          if (cached) {
-            const parsed = JSON.parse(cached);
-            setTransactions(parsed.map((t: any) => ({ ...t, date: new Date(t.date) })));
-          } else {
-            setTransactions([]);
-          }
-        } catch (e) {
-          setTransactions([]);
-        }
-        setTxLoaded(true);
-
         // Check and create user profile if it doesn't exist
         const userRef = doc(db, 'users', currentUser.uid);
-        const userDoc = await getDoc(userRef);
         
-        if (!userDoc.exists()) {
-          await setDoc(userRef, {
-            wallet: 0,
-            createdAt: serverTimestamp()
-          });
+        let userDocSnap;
+        try {
+          userDocSnap = await getDoc(userRef);
+          if (userDocSnap.exists()) {
+            const data = userDocSnap.data();
+            if (data.transactions) {
+              // Parse dates strings safely
+              const parsedTxs = data.transactions.map((t: any) => ({
+                ...t,
+                date: t.date?.toDate ? t.date.toDate() : new Date(t.date || Date.now())
+              }));
+              setTransactions(parsedTxs);
+            }
+          } else {
+            // Create user profile if it doesn't exist
+            await setDoc(userRef, {
+              wallet: 0,
+              transactions: [],
+              createdAt: serverTimestamp()
+            });
+          }
+        } catch (e) {
+          console.error("Error loading transactions from firestore", e);
         }
+        setTxLoaded(true);
       } else {
         setUser(null);
         setWallet(0);
@@ -66,10 +70,13 @@ export default function App() {
     return () => unsubscribeAuth();
   }, []);
 
-  // Save transactions to local storage whenever they change
+  // Save transactions to both local storage and Firestore whenever they change
   useEffect(() => {
     if (user && txLoaded) {
       localStorage.setItem(`tx_history_${user.uid}`, JSON.stringify(transactions));
+      setDoc(doc(db, 'users', user.uid), {
+        transactions
+      }, { merge: true });
     }
   }, [transactions, user, txLoaded]);
   const updateWallet = (newWalletOrUpdater: number | ((prev: number) => number)) => {
