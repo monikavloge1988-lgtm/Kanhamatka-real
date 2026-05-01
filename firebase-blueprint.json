@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the application.",
+      "type": "object",
+      "properties": {
+        "wallet": {
+          "type": "number",
+          "description": "User's current wallet balance"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "timestamp"
+        }
+      },
+      "required": ["wallet"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "A record of money movement.",
+      "type": "object",
+      "properties": {
+        "amount": { "type": "number" },
+        "type": { "type": "string", "enum": ["DEPOSIT", "WITHDRAWAL"] },
+        "status": { "type": "string", "enum": ["PENDING", "SUCCESS", "FAILED"] },
+        "date": { "type": "string", "format": "timestamp" },
+        "utr": { "type": "string" },
+        "upiId": { "type": "string" }
+      },
+      "required": ["amount", "type", "status", "date"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "User" },
+      "description": "Stores user profiles."
+    },
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": { "$ref": "Transaction" },
+      "description": "Stores user's transaction history."
+    }
+  }
+}

@@ -1,3 +1,4 @@
+import { ReactNode } from 'react';
 import { Headset, FileText, Wallet, User } from 'lucide-react';
 import { TabType } from '../types';
 
@@ -56,7 +57,7 @@ export function BottomNav({ activeTab, setActiveTab }: BottomNavProps) {
   );
 }
 
-function NavItem({ icon, label, isActive, onClick }: { icon: React.ReactNode; label: string; isActive: boolean; onClick: () => void }) {
+function NavItem({ icon, label, isActive, onClick }: { icon: ReactNode; label: string; isActive: boolean; onClick: () => void }) {
   return (
     <div 
       className="flex flex-col items-center justify-center flex-1 gap-1 cursor-pointer"

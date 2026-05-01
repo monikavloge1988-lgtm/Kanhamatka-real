@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default global deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return request.auth.uid == userId; }
+    function isValidId(id) { return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // Users Collection
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.keys().hasAll(['wallet', 'createdAt']) && 
+               data.keys().size() == 2 &&
+               data.wallet is number &&
+               data.createdAt == request.time;
+      }
+      
+      function isValidUserUpdate(data) {
+        return data.wallet is number &&
+               data.createdAt == existing().createdAt;
+      }
+
+      allow get: if isSignedIn() && isOwner(userId) && isValidId(userId);
+      allow create: if isSignedIn() && isOwner(userId) && isValidId(userId) && isValidUser(incoming());
+      allow update: if isSignedIn() && isOwner(userId) && isValidId(userId) && isValidUserUpdate(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['wallet']);
+      
+      // Transactions Subcollection
+      match /transactions/{transactionId} {
+        function isValidTransaction(data) {
+          let hasBaseKeys = data.keys().hasAll(['amount', 'type', 'status', 'date']);
+          return hasBaseKeys &&
+                 data.amount is number &&
+                 data.type is string && data.type.size() <= 20 &&
+                 data.status is string && data.status.size() <= 20 &&
+                 data.date == request.time;
+        }
+
+        function isValidTransactionUpdate(data) {
+          return data.status in ['PENDING', 'SUCCESS', 'FAILED'] &&
+                 data.amount == existing().amount &&
+                 data.type == existing().type &&
+                 data.date == existing().date;
+        }
+
+        allow read: if isSignedIn() && isOwner(userId) && isValidId(userId);
+        allow create: if isSignedIn() && isOwner(userId) && isValidId(userId) && isValidId(transactionId) && isValidTransaction(incoming());
+        allow update: if isSignedIn() && isOwner(userId) && isValidId(userId) && isValidId(transactionId) && isValidTransactionUpdate(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+      }
+    }
+  }
+}
