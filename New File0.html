@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loader Vertical Sound</title>
+
+<style>
+body, html {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: black;
+}
+
+/* Full Vertical Video */
+#introVideo {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* exact video jesi hai wesi dikhegi */
+    background: black;
+    z-index: 9999;
+}
+
+/* Tap Screen */
+#startScreen {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background: black;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    font-size: 20px;
+}
+
+/* Hidden content */
+#mainContent {
+    display: none;
+    width: 100%;
+    height: 100vh;
+    border: none;
+}
+</style>
+</head>
+
+<body>
+
+<!-- TAP TO START -->
+<div id="startScreen">Tap to Start</div>
+
+<!-- VIDEO -->
+<video id="introVideo" playsinline>
+    <source src="video.mp4" type="video/mp4">
+</video>
+
+<!-- WEBSITE / HTML -->
+<iframe id="mainContent" src="https://your-website.com"></iframe>
+
+<script>
+let video = document.getElementById("introVideo");
+let start = document.getElementById("startScreen");
+let content = document.getElementById("mainContent");
+
+/* Tap karte hi video sound ke sath chale */
+start.addEventListener("click", function() {
+    start.style.display = "none";
+    video.play();
+});
+
+/* Video khatam hone par next open */
+video.onended = function() {
+    video.style.display = "none";
+    content.style.display = "block";
+};
+
+/* Backup fallback */
+setTimeout(function(){
+    video.style.display = "none";
+    content.style.display = "block";
+}, 15000);
+</script>
+
+</body>
+</html>
